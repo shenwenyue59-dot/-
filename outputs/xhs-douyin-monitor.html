@@ -1,0 +1,947 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>小红书 / 抖音带货视频排行监控</title>
+  <style>
+    :root {
+      --bg: #f6f7f9;
+      --panel: #ffffff;
+      --text: #18202a;
+      --muted: #667085;
+      --line: #dde3ea;
+      --red: #e5484d;
+      --cyan: #0694a2;
+      --green: #138a43;
+      --yellow: #b76e00;
+      --blue: #2563eb;
+      --shadow: 0 10px 28px rgba(16, 24, 40, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Microsoft YaHei", "PingFang SC", system-ui, -apple-system, sans-serif;
+      letter-spacing: 0;
+    }
+
+    button, input, select {
+      font: inherit;
+    }
+
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 248px minmax(0, 1fr);
+    }
+
+    aside {
+      background: #111827;
+      color: #eef2f7;
+      padding: 24px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-height: 44px;
+    }
+
+    .brand-mark {
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #ff496a, #19b5c6);
+      color: white;
+      font-weight: 800;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 17px;
+      line-height: 1.25;
+    }
+
+    .brand span {
+      color: #9ca3af;
+      font-size: 12px;
+    }
+
+    nav {
+      display: grid;
+      gap: 8px;
+    }
+
+    .nav-item {
+      border: 0;
+      color: #cbd5e1;
+      background: transparent;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      text-align: left;
+    }
+
+    .nav-item.active,
+    .nav-item:hover {
+      background: #1f2937;
+      color: white;
+    }
+
+    .source-box {
+      margin-top: auto;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 8px;
+      padding: 14px;
+      color: #d1d5db;
+      display: grid;
+      gap: 10px;
+    }
+
+    .source-box strong {
+      color: white;
+      font-size: 14px;
+    }
+
+    .source-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #22c55e;
+      flex: 0 0 auto;
+    }
+
+    main {
+      padding: 24px;
+      min-width: 0;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .title h2 {
+      margin: 0;
+      font-size: 26px;
+      line-height: 1.25;
+    }
+
+    .title p {
+      margin: 7px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .btn {
+      border: 1px solid var(--line);
+      background: white;
+      color: var(--text);
+      min-height: 38px;
+      padding: 0 13px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .btn.primary {
+      border-color: #111827;
+      background: #111827;
+      color: white;
+    }
+
+    .filters {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      display: grid;
+      grid-template-columns: 1.2fr repeat(4, minmax(128px, 0.7fr));
+      gap: 12px;
+      box-shadow: var(--shadow);
+      margin-bottom: 16px;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    label {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    input, select {
+      width: 100%;
+      min-height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0 11px;
+      color: var(--text);
+      background: white;
+      outline: none;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    }
+
+    .kpis {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    .kpi {
+      background: white;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+      min-height: 112px;
+      display: grid;
+      align-content: space-between;
+      gap: 12px;
+    }
+
+    .kpi span {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .kpi strong {
+      font-size: 28px;
+      line-height: 1;
+    }
+
+    .kpi em {
+      font-style: normal;
+      font-size: 13px;
+      color: var(--green);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.7fr) minmax(320px, 0.8fr);
+      gap: 16px;
+      align-items: start;
+    }
+
+    .panel {
+      background: white;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .panel-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      min-height: 58px;
+      padding: 0 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .panel-head h3 {
+      margin: 0;
+      font-size: 16px;
+    }
+
+    .panel-head span {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 760px;
+    }
+
+    th, td {
+      padding: 13px 14px;
+      border-bottom: 1px solid #edf0f4;
+      text-align: left;
+      vertical-align: middle;
+      font-size: 14px;
+    }
+
+    th {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      background: #fbfcfd;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    tr:hover td {
+      background: #fafafa;
+    }
+
+    .rank {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      background: #eef2f7;
+      font-weight: 800;
+    }
+
+    .rank.top {
+      background: #fff1f2;
+      color: var(--red);
+    }
+
+    .video {
+      display: flex;
+      gap: 11px;
+      align-items: center;
+      min-width: 280px;
+    }
+
+    .thumb {
+      width: 58px;
+      aspect-ratio: 16 / 10;
+      border-radius: 7px;
+      background:
+        linear-gradient(135deg, rgba(0,0,0,0.08), rgba(255,255,255,0.28)),
+        var(--cover, #e9eef5);
+      flex: 0 0 auto;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .thumb::after {
+      content: "";
+      position: absolute;
+      inset: auto 7px 7px auto;
+      width: 0;
+      height: 0;
+      border-top: 6px solid transparent;
+      border-bottom: 6px solid transparent;
+      border-left: 9px solid rgba(255,255,255,0.9);
+    }
+
+    .video strong {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      font-size: 14px;
+      line-height: 1.35;
+    }
+
+    .video span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 25px;
+      padding: 0 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      background: #eef2ff;
+      color: #3446a5;
+    }
+
+    .tag.xhs {
+      background: #fff1f2;
+      color: #c92a3f;
+    }
+
+    .tag.dy {
+      background: #e8fbff;
+      color: #087788;
+    }
+
+    .trend {
+      font-weight: 800;
+    }
+
+    .trend.up { color: var(--green); }
+    .trend.hot { color: var(--red); }
+    .trend.down { color: var(--muted); }
+
+    .side {
+      display: grid;
+      gap: 16px;
+    }
+
+    .chart {
+      height: 220px;
+      padding: 14px 16px 16px;
+      display: grid;
+      align-items: end;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 10px;
+    }
+
+    .bar {
+      min-width: 0;
+      display: grid;
+      align-items: end;
+      gap: 8px;
+      height: 100%;
+    }
+
+    .bar span {
+      display: block;
+      border-radius: 7px 7px 3px 3px;
+      background: linear-gradient(180deg, #24b3c4, #2f80ed);
+      min-height: 16px;
+    }
+
+    .bar small {
+      color: var(--muted);
+      text-align: center;
+      font-size: 11px;
+    }
+
+    .list {
+      padding: 10px 14px 14px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .alert, .keyword {
+      border: 1px solid #edf0f4;
+      border-radius: 8px;
+      padding: 12px;
+      display: grid;
+      gap: 6px;
+    }
+
+    .alert strong, .keyword strong {
+      font-size: 14px;
+    }
+
+    .alert span, .keyword span {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .alert.high {
+      border-color: #ffd1d6;
+      background: #fff7f8;
+    }
+
+    .keyword-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .chip {
+      border-radius: 999px;
+      padding: 7px 10px;
+      background: #f1f5f9;
+      color: #334155;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .footer-note {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 16px;
+      line-height: 1.6;
+    }
+
+    .toast {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      background: #111827;
+      color: white;
+      border-radius: 8px;
+      padding: 12px 14px;
+      box-shadow: var(--shadow);
+      opacity: 0;
+      transform: translateY(10px);
+      pointer-events: none;
+      transition: 180ms ease;
+      z-index: 5;
+      max-width: min(420px, calc(100vw - 40px));
+      font-size: 14px;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @media (max-width: 1080px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+
+      aside {
+        position: sticky;
+        top: 0;
+        z-index: 3;
+        padding: 12px 16px;
+        flex-direction: row;
+        align-items: center;
+        overflow-x: auto;
+      }
+
+      nav {
+        display: flex;
+      }
+
+      .source-box {
+        display: none;
+      }
+
+      .filters {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .kpis {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 680px) {
+      main {
+        padding: 16px;
+      }
+
+      .topbar {
+        display: grid;
+      }
+
+      .actions {
+        justify-content: stretch;
+      }
+
+      .actions .btn {
+        flex: 1 1 140px;
+        justify-content: center;
+      }
+
+      .filters,
+      .kpis {
+        grid-template-columns: 1fr;
+      }
+
+      .title h2 {
+        font-size: 22px;
+      }
+
+      .kpi strong {
+        font-size: 24px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside>
+      <div class="brand">
+        <div class="brand-mark">榜</div>
+        <div>
+          <h1>带货视频监控</h1>
+          <span>小红书 / 抖音排行</span>
+        </div>
+      </div>
+
+      <nav aria-label="页面">
+        <button class="nav-item active" type="button">排行总览</button>
+        <button class="nav-item" type="button">爆款预警</button>
+        <button class="nav-item" type="button">商品线索</button>
+        <button class="nav-item" type="button">达人观察</button>
+      </nav>
+
+      <div class="source-box">
+        <strong>数据状态</strong>
+        <div class="source-status"><span class="dot"></span><span id="sourceStatus">模拟数据已加载</span></div>
+        <div class="source-status"><span class="dot" style="background:#f59e0b"></span><span>可接入接口或CSV</span></div>
+      </div>
+    </aside>
+
+    <main>
+      <section class="topbar">
+        <div class="title">
+          <h2>带货视频排行监控台</h2>
+          <p id="updatedAt">正在加载今日榜单...</p>
+        </div>
+        <div class="actions">
+          <button class="btn" id="loadSample" type="button" title="重新生成一批演示数据">↻ 刷新样例</button>
+          <button class="btn" id="exportCsv" type="button" title="导出当前筛选结果">↓ 导出CSV</button>
+          <button class="btn primary" id="showApiTip" type="button" title="查看真实数据接入方式">接入数据源</button>
+        </div>
+      </section>
+
+      <section class="filters" aria-label="筛选条件">
+        <div class="field">
+          <label for="search">搜索视频、达人、商品</label>
+          <input id="search" type="search" placeholder="例如：防晒、口红、收纳">
+        </div>
+        <div class="field">
+          <label for="platform">平台</label>
+          <select id="platform">
+            <option value="all">全部平台</option>
+            <option value="小红书">小红书</option>
+            <option value="抖音">抖音</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="category">品类</label>
+          <select id="category">
+            <option value="all">全部品类</option>
+            <option>美妆个护</option>
+            <option>食品饮料</option>
+            <option>家居生活</option>
+            <option>服饰鞋包</option>
+            <option>母婴宠物</option>
+            <option>数码家电</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="range">时间范围</label>
+          <select id="range">
+            <option value="24">近24小时</option>
+            <option value="72">近3天</option>
+            <option value="168">近7天</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="sort">排序指标</label>
+          <select id="sort">
+            <option value="gmv">预估销售额</option>
+            <option value="orders">预估订单</option>
+            <option value="heat">热度指数</option>
+            <option value="growth">增长速度</option>
+          </select>
+        </div>
+      </section>
+
+      <section class="kpis" aria-label="关键指标">
+        <article class="kpi">
+          <span>上榜视频</span>
+          <strong id="kpiVideos">0</strong>
+          <em id="kpiVideoTrend">筛选后统计</em>
+        </article>
+        <article class="kpi">
+          <span>预估销售额</span>
+          <strong id="kpiGmv">¥0</strong>
+          <em>按当前榜单汇总</em>
+        </article>
+        <article class="kpi">
+          <span>爆款预警</span>
+          <strong id="kpiAlerts">0</strong>
+          <em>增长或转化异常</em>
+        </article>
+        <article class="kpi">
+          <span>平均转化率</span>
+          <strong id="kpiCvr">0%</strong>
+          <em>由互动和订单估算</em>
+        </article>
+      </section>
+
+      <section class="layout">
+        <article class="panel">
+          <div class="panel-head">
+            <h3>实时排行</h3>
+            <span id="resultCount">0 条结果</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>排名</th>
+                  <th>视频</th>
+                  <th>平台</th>
+                  <th>品类</th>
+                  <th>预估销售额</th>
+                  <th>订单</th>
+                  <th>热度</th>
+                  <th>趋势</th>
+                </tr>
+              </thead>
+              <tbody id="rankingBody"></tbody>
+            </table>
+          </div>
+        </article>
+
+        <aside class="side">
+          <article class="panel">
+            <div class="panel-head">
+              <h3>热度走势</h3>
+              <span>近7个周期</span>
+            </div>
+            <div class="chart" id="trendChart" aria-label="热度走势图"></div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-head">
+              <h3>爆款预警</h3>
+              <span id="alertCount">0 条</span>
+            </div>
+            <div class="list" id="alerts"></div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-head">
+              <h3>高频卖点</h3>
+              <span>标题与商品词</span>
+            </div>
+            <div class="list">
+              <div class="keyword-row" id="keywords"></div>
+            </div>
+          </article>
+        </aside>
+      </section>
+
+      <p class="footer-note">
+        当前页面使用本地模拟数据演示监控流程。真实上线时建议通过合规的数据服务、平台授权接口或你自己的数据仓库提供排行数据，避免绕过平台规则抓取内容。
+      </p>
+    </main>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    const creators = ["七七种草铺", "阿茶测评", "居家研究员", "美妆小林", "老陈严选", "小满厨房", "糖糖穿搭", "数码周刊"];
+    const goods = ["防晒霜", "低卡燕麦", "分层收纳盒", "空气炸锅", "修容盘", "冲锋衣", "儿童保温杯", "无线耳机"];
+    const categories = ["美妆个护", "食品饮料", "家居生活", "数码家电", "服饰鞋包", "母婴宠物"];
+    const hooks = ["实测不踩雷", "今天价格很能打", "办公室人手一件", "懒人也能坚持", "回购榜第一名", "新手闭眼入"];
+    const colors = ["#ffd5dc", "#c7f0ff", "#d9f7be", "#ffe8b3", "#d7dcff", "#ffd6a5", "#c8eadb", "#e8ddff"];
+
+    let rows = [];
+
+    const yuan = value => "¥" + Math.round(value).toLocaleString("zh-CN");
+    const pct = value => (value * 100).toFixed(1) + "%";
+
+    function generateData() {
+      rows = Array.from({ length: 36 }, (_, index) => {
+        const platform = index % 3 === 0 ? "小红书" : "抖音";
+        const good = goods[index % goods.length];
+        const category = categories[(index + Math.floor(index / 2)) % categories.length];
+        const heat = 62 + Math.round(Math.random() * 38);
+        const growth = Math.round((Math.random() * 86 - 10) * 10) / 10;
+        const orders = Math.round(400 + Math.random() * 9400 + heat * 22);
+        const price = 39 + Math.random() * 360;
+        return {
+          id: index + 1,
+          title: `${good}${hooks[(index + 2) % hooks.length]}，评论区问疯了`,
+          creator: creators[index % creators.length],
+          platform,
+          category,
+          gmv: orders * price,
+          orders,
+          heat,
+          growth,
+          cvr: 0.018 + Math.random() * 0.096,
+          color: colors[index % colors.length],
+          keywords: [good, category.slice(0, 2), hooks[index % hooks.length].slice(0, 4)]
+        };
+      });
+      render();
+    }
+
+    function filteredRows() {
+      const q = document.querySelector("#search").value.trim().toLowerCase();
+      const platform = document.querySelector("#platform").value;
+      const category = document.querySelector("#category").value;
+      const sort = document.querySelector("#sort").value;
+
+      return rows
+        .filter(row => platform === "all" || row.platform === platform)
+        .filter(row => category === "all" || row.category === category)
+        .filter(row => {
+          if (!q) return true;
+          return `${row.title} ${row.creator} ${row.category} ${row.keywords.join(" ")}`.toLowerCase().includes(q);
+        })
+        .sort((a, b) => b[sort] - a[sort]);
+    }
+
+    function render() {
+      const data = filteredRows();
+      const totalGmv = data.reduce((sum, row) => sum + row.gmv, 0);
+      const alertRows = data.filter(row => row.growth >= 45 || row.heat >= 92);
+      const avgCvr = data.length ? data.reduce((sum, row) => sum + row.cvr, 0) / data.length : 0;
+
+      document.querySelector("#kpiVideos").textContent = data.length;
+      document.querySelector("#kpiGmv").textContent = yuan(totalGmv);
+      document.querySelector("#kpiAlerts").textContent = alertRows.length;
+      document.querySelector("#kpiCvr").textContent = pct(avgCvr);
+      document.querySelector("#kpiVideoTrend").textContent = `${document.querySelector("#range").selectedOptions[0].text}榜单`;
+      document.querySelector("#resultCount").textContent = `${data.length} 条结果`;
+      document.querySelector("#alertCount").textContent = `${alertRows.length} 条`;
+      document.querySelector("#updatedAt").textContent = `最近更新：${new Date().toLocaleString("zh-CN", { hour12: false })}`;
+      document.querySelector("#sourceStatus").textContent = `已加载 ${rows.length} 条样例`;
+
+      renderTable(data.slice(0, 20));
+      renderChart(data);
+      renderAlerts(alertRows.slice(0, 4));
+      renderKeywords(data);
+    }
+
+    function renderTable(data) {
+      const body = document.querySelector("#rankingBody");
+      body.innerHTML = data.map((row, index) => {
+        const trendClass = row.growth >= 45 ? "hot" : row.growth >= 8 ? "up" : "down";
+        const trendText = row.growth >= 0 ? `+${row.growth}%` : `${row.growth}%`;
+        return `
+          <tr>
+            <td><span class="rank ${index < 3 ? "top" : ""}">${index + 1}</span></td>
+            <td>
+              <div class="video">
+                <span class="thumb" style="--cover:${row.color}"></span>
+                <span>
+                  <strong>${row.title}</strong>
+                  <span>${row.creator}</span>
+                </span>
+              </div>
+            </td>
+            <td><span class="tag ${row.platform === "小红书" ? "xhs" : "dy"}">${row.platform}</span></td>
+            <td>${row.category}</td>
+            <td>${yuan(row.gmv)}</td>
+            <td>${row.orders.toLocaleString("zh-CN")}</td>
+            <td>${row.heat}</td>
+            <td><span class="trend ${trendClass}">${trendText}</span></td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function renderChart(data) {
+      const chart = document.querySelector("#trendChart");
+      const base = data.length ? data.reduce((sum, row) => sum + row.heat, 0) / data.length : 30;
+      const values = Array.from({ length: 7 }, (_, index) => Math.max(16, Math.round(base * (0.72 + index * 0.055 + Math.random() * 0.18))));
+      const max = Math.max(...values, 1);
+      chart.innerHTML = values.map((value, index) => `
+        <div class="bar">
+          <span style="height:${Math.round((value / max) * 160)}px"></span>
+          <small>${index + 1}</small>
+        </div>
+      `).join("");
+    }
+
+    function renderAlerts(alertRows) {
+      const box = document.querySelector("#alerts");
+      if (!alertRows.length) {
+        box.innerHTML = `<div class="alert"><strong>暂无明显异常</strong><span>当前筛选范围内没有高增长或高热度视频。</span></div>`;
+        return;
+      }
+      box.innerHTML = alertRows.map(row => `
+        <div class="alert ${row.growth >= 45 ? "high" : ""}">
+          <strong>${row.platform}｜${row.keywords[0]}快速升温</strong>
+          <span>${row.creator} 的视频热度 ${row.heat}，增长 ${row.growth >= 0 ? "+" : ""}${row.growth}%，建议跟进商品、佣金和库存。</span>
+        </div>
+      `).join("");
+    }
+
+    function renderKeywords(data) {
+      const counts = new Map();
+      data.flatMap(row => row.keywords).forEach(word => counts.set(word, (counts.get(word) || 0) + 1));
+      const words = [...counts.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10);
+      document.querySelector("#keywords").innerHTML = words.map(([word, count]) => `<span class="chip">${word} ${count}</span>`).join("");
+    }
+
+    function showToast(text) {
+      const toast = document.querySelector("#toast");
+      toast.textContent = text;
+      toast.classList.add("show");
+      window.clearTimeout(showToast.timer);
+      showToast.timer = window.setTimeout(() => toast.classList.remove("show"), 3200);
+    }
+
+    function exportCsv() {
+      const data = filteredRows();
+      const header = ["排名", "平台", "标题", "达人", "品类", "预估销售额", "预估订单", "热度", "增长"];
+      const lines = data.map((row, index) => [
+        index + 1,
+        row.platform,
+        row.title,
+        row.creator,
+        row.category,
+        Math.round(row.gmv),
+        row.orders,
+        row.heat,
+        row.growth + "%"
+      ].map(value => `"${String(value).replaceAll('"', '""')}"`).join(","));
+      const blob = new Blob(["\ufeff" + [header.join(","), ...lines].join("\n")], { type: "text/csv;charset=utf-8" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "带货视频排行.csv";
+      link.click();
+      URL.revokeObjectURL(link.href);
+      showToast("已导出当前榜单CSV。");
+    }
+
+    function apiTip() {
+      showToast("真实数据入口建议提供 /api/rankings，字段包含 platform、title、creator、category、gmv、orders、heat、growth、cvr。");
+    }
+
+    document.querySelectorAll("input, select").forEach(el => el.addEventListener("input", render));
+    document.querySelector("#loadSample").addEventListener("click", () => {
+      generateData();
+      showToast("样例数据已刷新。");
+    });
+    document.querySelector("#exportCsv").addEventListener("click", exportCsv);
+    document.querySelector("#showApiTip").addEventListener("click", apiTip);
+
+    generateData();
+  </script>
+</body>
+</html>
