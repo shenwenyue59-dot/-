@@ -1,0 +1,703 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>随机晚饭转盘</title>
+  <style>
+    :root {
+      --bg: #f7f3ec;
+      --ink: #28241f;
+      --muted: #6e665c;
+      --line: #ddd2c3;
+      --panel: #fffaf2;
+      --accent: #d9472b;
+      --accent-2: #176c72;
+      --green: #5d7d36;
+      --yellow: #e3a625;
+      --shadow: 0 18px 50px rgba(48, 38, 25, .16);
+      font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 10% 8%, rgba(217, 71, 43, .12), transparent 28%),
+        radial-gradient(circle at 85% 12%, rgba(23, 108, 114, .12), transparent 30%),
+        linear-gradient(145deg, #fbf8f1 0%, var(--bg) 62%, #efe4d4 100%);
+    }
+
+    button, input, select, textarea { font: inherit; }
+
+    .shell {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 28px 0;
+    }
+
+    header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(30px, 5vw, 58px);
+      line-height: 1;
+      letter-spacing: 0;
+    }
+
+    .tagline {
+      margin: 10px 0 0;
+      color: var(--muted);
+      font-size: 16px;
+      max-width: 580px;
+    }
+
+    .date-chip {
+      flex: 0 0 auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border: 1px solid var(--line);
+      background: rgba(255, 250, 242, .7);
+      border-radius: 999px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: minmax(320px, 410px) minmax(0, 1fr);
+      gap: 22px;
+      align-items: start;
+    }
+
+    .controls, .stage, .result-panel {
+      background: rgba(255, 250, 242, .86);
+      border: 1px solid rgba(221, 210, 195, .9);
+      box-shadow: var(--shadow);
+      border-radius: 8px;
+    }
+
+    .controls {
+      padding: 18px;
+    }
+
+    .section-title {
+      margin: 0 0 12px;
+      font-size: 15px;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .field {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+
+    label {
+      font-size: 14px;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    textarea, select, input[type="number"] {
+      width: 100%;
+      min-height: 44px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fffdf8;
+      color: var(--ink);
+      padding: 10px 12px;
+      outline: none;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 82px;
+    }
+
+    textarea:focus, select:focus, input:focus {
+      border-color: var(--accent-2);
+      box-shadow: 0 0 0 3px rgba(23, 108, 114, .14);
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .chip input { position: absolute; opacity: 0; pointer-events: none; }
+
+    .chip span {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 36px;
+      padding: 8px 12px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #fffdf8;
+      cursor: pointer;
+      color: var(--muted);
+      transition: .16s ease;
+    }
+
+    .chip input:checked + span {
+      background: var(--accent-2);
+      border-color: var(--accent-2);
+      color: white;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+      margin-top: 18px;
+    }
+
+    .primary, .icon-btn {
+      border: 0;
+      cursor: pointer;
+      transition: transform .16s ease, filter .16s ease;
+    }
+
+    .primary {
+      min-height: 52px;
+      border-radius: 8px;
+      background: var(--accent);
+      color: white;
+      font-weight: 800;
+      font-size: 17px;
+      box-shadow: 0 10px 24px rgba(217, 71, 43, .25);
+    }
+
+    .icon-btn {
+      width: 52px;
+      height: 52px;
+      border-radius: 8px;
+      background: #28241f;
+      color: white;
+      font-size: 22px;
+    }
+
+    .primary:hover, .icon-btn:hover { transform: translateY(-1px); filter: brightness(1.03); }
+    .primary:active, .icon-btn:active { transform: translateY(1px) scale(.99); }
+
+    .stage {
+      min-height: 674px;
+      padding: 22px;
+      display: grid;
+      grid-template-columns: minmax(260px, 430px) minmax(260px, 1fr);
+      gap: 22px;
+      align-items: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .wheel-wrap {
+      display: grid;
+      justify-items: center;
+      gap: 16px;
+    }
+
+    .pointer {
+      width: 0;
+      height: 0;
+      border-left: 18px solid transparent;
+      border-right: 18px solid transparent;
+      border-top: 34px solid var(--ink);
+      filter: drop-shadow(0 4px 3px rgba(0,0,0,.2));
+      z-index: 2;
+      margin-bottom: -8px;
+    }
+
+    .wheel {
+      width: min(100%, 390px);
+      aspect-ratio: 1;
+      border-radius: 50%;
+      border: 10px solid #fffdf8;
+      box-shadow: 0 20px 48px rgba(46, 35, 20, .22), inset 0 0 0 1px rgba(0,0,0,.08);
+      background: conic-gradient(
+        #d9472b 0deg 40deg,
+        #e3a625 40deg 80deg,
+        #176c72 80deg 120deg,
+        #5d7d36 120deg 160deg,
+        #c15d2e 160deg 200deg,
+        #8c5a99 200deg 240deg,
+        #2f7c9a 240deg 280deg,
+        #c58d2d 280deg 320deg,
+        #8b6f47 320deg 360deg
+      );
+      position: relative;
+      transform: rotate(var(--spin, 0deg));
+      transition: transform 2.7s cubic-bezier(.14,.75,.12,1);
+    }
+
+    .wheel::before {
+      content: "";
+      position: absolute;
+      inset: 18%;
+      border-radius: 50%;
+      background: #fffaf2;
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,.08);
+    }
+
+    .wheel::after {
+      content: "今晚";
+      position: absolute;
+      inset: 36%;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--ink);
+      color: #fffaf2;
+      font-size: 24px;
+      font-weight: 900;
+      box-shadow: 0 10px 22px rgba(0,0,0,.2);
+    }
+
+    .food-orbits {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .food-orbits span {
+      position: absolute;
+      font-size: clamp(22px, 5vw, 34px);
+      filter: drop-shadow(0 6px 6px rgba(40,36,31,.18));
+    }
+
+    .food-orbits span:nth-child(1) { top: 7%; left: 17%; }
+    .food-orbits span:nth-child(2) { top: 10%; right: 10%; }
+    .food-orbits span:nth-child(3) { bottom: 14%; left: 8%; }
+    .food-orbits span:nth-child(4) { right: 12%; bottom: 8%; }
+
+    .result-panel {
+      padding: 20px;
+      box-shadow: none;
+      min-height: 480px;
+      display: grid;
+      align-content: start;
+    }
+
+    .result-label {
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .result-name {
+      margin: 8px 0 8px;
+      font-size: clamp(30px, 4vw, 52px);
+      line-height: 1.05;
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+
+    .meta span {
+      padding: 7px 10px;
+      border-radius: 999px;
+      background: #f1e7d8;
+      color: #51483d;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .reason {
+      margin: 0 0 18px;
+      font-size: 17px;
+      line-height: 1.7;
+    }
+
+    .options-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin: 18px 0 10px;
+      color: var(--muted);
+      font-weight: 800;
+      font-size: 14px;
+    }
+
+    .option-list {
+      display: grid;
+      gap: 10px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .option-list li {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 10px;
+      align-items: start;
+      padding: 12px;
+      border: 1px solid var(--line);
+      background: #fffdf8;
+      border-radius: 8px;
+    }
+
+    .score {
+      min-width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      color: white;
+      background: var(--green);
+      font-weight: 900;
+      font-size: 13px;
+    }
+
+    .option-name {
+      display: block;
+      font-weight: 900;
+      margin-bottom: 4px;
+    }
+
+    .option-reason {
+      display: block;
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: 14px;
+    }
+
+    .empty {
+      color: var(--muted);
+      line-height: 1.7;
+      align-self: center;
+    }
+
+    @media (max-width: 980px) {
+      main, .stage { grid-template-columns: 1fr; }
+      .stage { min-height: auto; }
+      header { align-items: flex-start; flex-direction: column; }
+    }
+
+    @media (max-width: 560px) {
+      .shell { width: min(100% - 20px, 1180px); padding: 16px 0; }
+      .row, .actions { grid-template-columns: 1fr; }
+      .icon-btn { width: 100%; }
+      .controls, .stage { padding: 14px; }
+      .result-panel { min-height: 0; padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <div>
+        <h1>随机晚饭转盘</h1>
+        <p class="tagline">把预算、忌口和今天的口味丢进去，让转盘替你结束“吃什么”的漫长拉扯。</p>
+      </div>
+      <div class="date-chip" id="todayChip">🍽 今天吃什么</div>
+    </header>
+
+    <main>
+      <section class="controls" aria-label="晚饭条件">
+        <p class="section-title">今晚条件</p>
+
+        <div class="field">
+          <label for="avoid">不想吃 / 忌口</label>
+          <textarea id="avoid" placeholder="例如：火锅、太辣、面条、海鲜"></textarea>
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label for="budget">人均预算</label>
+            <select id="budget">
+              <option value="35">35 元内</option>
+              <option value="60" selected>60 元内</option>
+              <option value="100">100 元内</option>
+              <option value="180">180 元内</option>
+              <option value="999">都行，今天犒劳</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="people">人数</label>
+            <input id="people" type="number" min="1" max="12" value="2">
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label for="distance">附近程度</label>
+            <select id="distance">
+              <option value="veryNear">楼下/外卖优先</option>
+              <option value="near" selected>附近 2 公里</option>
+              <option value="trip">可以专门去</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="mood">今天状态</label>
+            <select id="mood">
+              <option value="lazy">懒得动</option>
+              <option value="normal" selected>正常吃饭</option>
+              <option value="treat">想吃点好的</option>
+              <option value="light">想清爽一点</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>附近菜系偏好</label>
+          <div class="chips" id="cuisineChips">
+            <label class="chip"><input type="checkbox" value="中式" checked><span>中式</span></label>
+            <label class="chip"><input type="checkbox" value="日料"><span>日料</span></label>
+            <label class="chip"><input type="checkbox" value="韩餐"><span>韩餐</span></label>
+            <label class="chip"><input type="checkbox" value="东南亚"><span>东南亚</span></label>
+            <label class="chip"><input type="checkbox" value="西餐"><span>西餐</span></label>
+            <label class="chip"><input type="checkbox" value="轻食"><span>轻食</span></label>
+            <label class="chip"><input type="checkbox" value="小吃"><span>小吃</span></label>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="primary" id="spinBtn">转一下，今晚就它</button>
+          <button class="icon-btn" id="surpriseBtn" title="随机填一组条件" aria-label="随机填一组条件">↻</button>
+        </div>
+      </section>
+
+      <section class="stage" aria-live="polite">
+        <div class="food-orbits" aria-hidden="true">
+          <span>🥟</span>
+          <span>🍜</span>
+          <span>🍣</span>
+          <span>🥗</span>
+        </div>
+
+        <div class="wheel-wrap">
+          <div class="pointer" aria-hidden="true"></div>
+          <div class="wheel" id="wheel" aria-hidden="true"></div>
+        </div>
+
+        <article class="result-panel" id="resultPanel">
+          <div class="empty">
+            先填一点偏好，然后按下转盘。它会避开你不想吃的东西，给出一个主推荐和三个备选。
+          </div>
+        </article>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const foods = [
+      { name: "黄焖鸡米饭", cuisine: "中式", maxBudget: 45, distance: 3, mood: ["lazy", "normal"], tags: ["热乎", "米饭", "稳妥"], avoid: ["鸡", "米饭"] },
+      { name: "潮汕牛肉粿条", cuisine: "中式", maxBudget: 70, distance: 2, mood: ["normal", "light"], tags: ["清汤", "牛肉", "不腻"], avoid: ["牛", "粿条", "粉"] },
+      { name: "番茄牛腩饭", cuisine: "中式", maxBudget: 65, distance: 2, mood: ["normal", "treat"], tags: ["酸甜", "下饭", "舒服"], avoid: ["牛", "番茄", "米饭"] },
+      { name: "砂锅粥", cuisine: "中式", maxBudget: 90, distance: 2, mood: ["light", "normal"], tags: ["暖胃", "适合聊天", "清爽"], avoid: ["粥", "海鲜"] },
+      { name: "重庆小面", cuisine: "小吃", maxBudget: 30, distance: 3, mood: ["lazy", "normal"], tags: ["快", "便宜", "香"], avoid: ["面", "辣"] },
+      { name: "煎饼果子加豆浆", cuisine: "小吃", maxBudget: 25, distance: 3, mood: ["lazy"], tags: ["超快", "省钱", "满足"], avoid: ["煎饼", "豆浆"] },
+      { name: "港式烧腊饭", cuisine: "中式", maxBudget: 58, distance: 3, mood: ["lazy", "normal"], tags: ["出餐快", "肉香", "不用纠结"], avoid: ["猪", "鸡", "鸭", "米饭"] },
+      { name: "麻辣烫", cuisine: "小吃", maxBudget: 55, distance: 3, mood: ["lazy", "normal"], tags: ["自由搭配", "外卖友好", "热闹"], avoid: ["辣", "麻辣烫"] },
+      { name: "寿司拼盘", cuisine: "日料", maxBudget: 85, distance: 2, mood: ["light", "normal"], tags: ["清爽", "不用太撑", "适合两人"], avoid: ["寿司", "生食", "海鲜"] },
+      { name: "日式咖喱饭", cuisine: "日料", maxBudget: 60, distance: 3, mood: ["lazy", "normal"], tags: ["浓郁", "米饭", "稳定"], avoid: ["咖喱", "米饭"] },
+      { name: "拉面", cuisine: "日料", maxBudget: 70, distance: 2, mood: ["normal", "treat"], tags: ["汤头", "有仪式感", "饱"], avoid: ["拉面", "面"] },
+      { name: "韩式拌饭", cuisine: "韩餐", maxBudget: 55, distance: 3, mood: ["light", "normal"], tags: ["蔬菜多", "拌一拌就好", "均衡"], avoid: ["辣", "米饭"] },
+      { name: "部队锅", cuisine: "韩餐", maxBudget: 95, distance: 2, mood: ["treat", "normal"], tags: ["适合多人", "热乎", "分享感"], avoid: ["辣", "泡面", "芝士"] },
+      { name: "泰式冬阴功粉", cuisine: "东南亚", maxBudget: 70, distance: 2, mood: ["light", "normal"], tags: ["酸辣开胃", "香料感", "不沉闷"], avoid: ["辣", "酸", "粉", "海鲜"] },
+      { name: "越南牛肉河粉", cuisine: "东南亚", maxBudget: 65, distance: 2, mood: ["light", "normal"], tags: ["清爽", "汤面", "负担小"], avoid: ["牛", "粉"] },
+      { name: "海南鸡饭", cuisine: "东南亚", maxBudget: 65, distance: 2, mood: ["normal", "light"], tags: ["温和", "鸡肉", "米饭"], avoid: ["鸡", "米饭"] },
+      { name: "意面套餐", cuisine: "西餐", maxBudget: 85, distance: 2, mood: ["normal", "treat"], tags: ["不用太正式", "口味稳定", "拍照也行"], avoid: ["意面", "面", "奶油"] },
+      { name: "汉堡薯条", cuisine: "西餐", maxBudget: 65, distance: 3, mood: ["lazy", "treat"], tags: ["快乐", "快", "高满足"], avoid: ["汉堡", "油炸"] },
+      { name: "烤鸡沙拉", cuisine: "轻食", maxBudget: 55, distance: 3, mood: ["light", "normal"], tags: ["清爽", "蛋白质", "晚上轻一点"], avoid: ["鸡", "沙拉"] },
+      { name: "三明治配汤", cuisine: "轻食", maxBudget: 50, distance: 3, mood: ["lazy", "light"], tags: ["不撑", "好消化", "简单"], avoid: ["面包", "奶油"] },
+      { name: "酸菜鱼", cuisine: "中式", maxBudget: 100, distance: 2, mood: ["treat", "normal"], tags: ["下饭", "适合分享", "开胃"], avoid: ["鱼", "辣", "酸"] },
+      { name: "烤肉", cuisine: "韩餐", maxBudget: 180, distance: 1, mood: ["treat"], tags: ["犒劳", "适合多人", "热闹"], avoid: ["牛", "猪", "烤肉"] }
+    ];
+
+    const avoidInput = document.querySelector("#avoid");
+    const budgetInput = document.querySelector("#budget");
+    const peopleInput = document.querySelector("#people");
+    const distanceInput = document.querySelector("#distance");
+    const moodInput = document.querySelector("#mood");
+    const spinBtn = document.querySelector("#spinBtn");
+    const surpriseBtn = document.querySelector("#surpriseBtn");
+    const wheel = document.querySelector("#wheel");
+    const panel = document.querySelector("#resultPanel");
+    const todayChip = document.querySelector("#todayChip");
+
+    const distanceScore = { veryNear: 3, near: 2, trip: 1 };
+    let spin = 0;
+
+    todayChip.textContent = new Intl.DateTimeFormat("zh-CN", {
+      weekday: "long",
+      month: "long",
+      day: "numeric"
+    }).format(new Date());
+
+    function selectedCuisines() {
+      return [...document.querySelectorAll("#cuisineChips input:checked")].map(input => input.value);
+    }
+
+    function tokenizeAvoidText() {
+      return avoidInput.value
+        .split(/[，,、\s/]+/)
+        .map(item => item.trim().toLowerCase())
+        .filter(Boolean);
+    }
+
+    function scoreFood(food, context) {
+      let score = 50;
+      if (context.cuisines.includes(food.cuisine)) score += 24;
+      if (food.maxBudget <= context.budget) score += 18;
+      else score -= Math.min(28, Math.ceil((food.maxBudget - context.budget) / 5));
+      if (food.distance >= context.distanceNeed) score += 12;
+      if (food.mood.includes(context.mood)) score += 16;
+      if (context.people >= 3 && ["部队锅", "酸菜鱼", "烤肉", "砂锅粥"].includes(food.name)) score += 12;
+      if (context.people === 1 && ["部队锅", "酸菜鱼", "烤肉"].includes(food.name)) score -= 15;
+      score += Math.floor(Math.random() * 18);
+      return score;
+    }
+
+    function isAvoided(food, avoidWords) {
+      if (!avoidWords.length) return false;
+      const haystack = [food.name, food.cuisine, ...food.tags, ...food.avoid].join(" ").toLowerCase();
+      return avoidWords.some(word => haystack.includes(word));
+    }
+
+    function buildReason(food, context) {
+      const pieces = [];
+      if (food.maxBudget <= context.budget) pieces.push(`人均大约能压在 ${Math.min(food.maxBudget, context.budget)} 元以内`);
+      else pieces.push("稍微超一点预算，但满足感比较高");
+      if (food.distance >= context.distanceNeed) pieces.push(context.distanceNeed === 3 ? "楼下或外卖通常好解决" : "附近大概率能找到");
+      if (food.mood.includes(context.mood)) pieces.push(moodCopy(context.mood));
+      pieces.push(food.tags.slice(0, 2).join("、"));
+      return pieces.join("，") + "。";
+    }
+
+    function moodCopy(mood) {
+      return {
+        lazy: "适合今天不想折腾",
+        normal: "属于稳稳当当的一顿",
+        treat: "有一点犒劳自己的感觉",
+        light: "晚上吃起来负担小一点"
+      }[mood];
+    }
+
+    function pickDinner() {
+      const context = {
+        budget: Number(budgetInput.value),
+        people: Number(peopleInput.value || 1),
+        distanceNeed: distanceScore[distanceInput.value],
+        mood: moodInput.value,
+        cuisines: selectedCuisines()
+      };
+      if (!context.cuisines.length) context.cuisines = ["中式", "日料", "韩餐", "东南亚", "西餐", "轻食", "小吃"];
+
+      const avoidWords = tokenizeAvoidText();
+      let candidates = foods
+        .filter(food => !isAvoided(food, avoidWords))
+        .map(food => ({ ...food, score: scoreFood(food, context) }))
+        .sort((a, b) => b.score - a.score);
+
+      if (!candidates.length) {
+        candidates = foods
+          .map(food => ({ ...food, score: scoreFood(food, context) - 20 }))
+          .sort((a, b) => b.score - a.score);
+      }
+
+      const topPool = candidates.slice(0, Math.min(6, candidates.length));
+      const winner = topPool[Math.floor(Math.random() * topPool.length)];
+      const backups = candidates.filter(food => food.name !== winner.name).slice(0, 3);
+      return { winner, backups, context };
+    }
+
+    function renderResult(result) {
+      const { winner, backups, context } = result;
+      const meta = [
+        winner.cuisine,
+        `人均约 ${winner.maxBudget} 元内`,
+        winner.tags[0],
+        context.people > 1 ? `${context.people} 人也合适` : "单人友好"
+      ];
+
+      panel.innerHTML = `
+        <span class="result-label">今晚就吃这个</span>
+        <h2 class="result-name">${winner.name}</h2>
+        <div class="meta">${meta.map(item => `<span>${item}</span>`).join("")}</div>
+        <p class="reason">${buildReason(winner, context)}</p>
+        <div class="options-title">
+          <span>备选理由</span>
+          <span>${selectedCuisines().length ? selectedCuisines().join(" / ") : "全菜系"}</span>
+        </div>
+        <ul class="option-list">
+          ${backups.map((food, index) => `
+            <li>
+              <span class="score">${index + 1}</span>
+              <span>
+                <span class="option-name">${food.name}</span>
+                <span class="option-reason">${buildReason(food, context)}</span>
+              </span>
+            </li>
+          `).join("")}
+        </ul>
+      `;
+    }
+
+    function spinWheel() {
+      const result = pickDinner();
+      spin += 1200 + Math.floor(Math.random() * 720);
+      wheel.style.setProperty("--spin", `${spin}deg`);
+      spinBtn.disabled = true;
+      spinBtn.textContent = "转盘思考中...";
+      window.setTimeout(() => {
+        renderResult(result);
+        spinBtn.disabled = false;
+        spinBtn.textContent = "再转一次";
+      }, 950);
+    }
+
+    function randomizeForm() {
+      const avoidSamples = ["太辣", "火锅", "面条", "海鲜", "油炸", "米饭", ""];
+      const moods = ["lazy", "normal", "treat", "light"];
+      const budgets = ["35", "60", "100", "180", "999"];
+      const distances = ["veryNear", "near", "trip"];
+      avoidInput.value = avoidSamples[Math.floor(Math.random() * avoidSamples.length)];
+      moodInput.value = moods[Math.floor(Math.random() * moods.length)];
+      budgetInput.value = budgets[Math.floor(Math.random() * budgets.length)];
+      distanceInput.value = distances[Math.floor(Math.random() * distances.length)];
+      peopleInput.value = String(1 + Math.floor(Math.random() * 4));
+
+      document.querySelectorAll("#cuisineChips input").forEach(input => {
+        input.checked = Math.random() > .55;
+      });
+      if (!selectedCuisines().length) {
+        document.querySelector('#cuisineChips input[value="中式"]').checked = true;
+      }
+    }
+
+    spinBtn.addEventListener("click", spinWheel);
+    surpriseBtn.addEventListener("click", randomizeForm);
+  </script>
+</body>
+</html>
